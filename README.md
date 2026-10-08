@@ -2,7 +2,7 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/darxnet/gosync.svg)](https://pkg.go.dev/github.com/darxnet/gosync)
 [![Go](https://github.com/darxnet/gosync/actions/workflows/release.yml/badge.svg)](https://github.com/darxnet/gosync/actions/workflows/release.yml)
-![Coverage](https://img.shields.io/badge/Coverage-99%25-brightgreen)
+[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/darxnet/gosync/badges/coverage.json)](https://github.com/darxnet/gosync/actions/workflows/release.yml)
 
 `gosync.Map` is a generic, concurrent map with the semantics of `sync.Map` — and
 without its cost: keys and values are stored as they are, so there is no
