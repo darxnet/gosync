@@ -22,6 +22,7 @@ package gosync
 
 import (
 	"hash/maphash"
+	"iter"
 	"sync"
 	"sync/atomic"
 	"unsafe"
@@ -532,7 +533,7 @@ func (m *Map[K, V]) find(
 // may reflect any mapping for that key from any point during iteration. The iterator
 // does not block other methods on the receiver; even yield itself may call any
 // method on the Map.
-func (m *Map[K, V]) All() func(yield func(K, V) bool) {
+func (m *Map[K, V]) All() iter.Seq2[K, V] {
 	return m.Range
 }
 
