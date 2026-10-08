@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Verify go mod tidy
+        run: |
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
+
+      - name: Run Tests
+        run: go test -race -failfast -coverprofile=coverage.out ./...
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: latest
+
+      - name: Verify Coverage
+        run: |
+          total=$(go tool cover -func=coverage.out | grep "total:" | awk '{print $3}' | sed 's/%//')
+          echo "Total coverage: $total%"
+          if awk "BEGIN { exit !($total < 98) }"; then
+            echo "Coverage is below 98%"
+            exit 1
+          fi
+
+      - name: Install svu
+        run: go install github.com/caarlos0/svu/v2@latest
+
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NEXT=$(svu next)
+          if [ "$(svu current)" == "$NEXT" ]; then
+            echo "Version $NEXT already exists, skipping release."
+          else
+            echo "Releasing $NEXT..."
+            gh release create "$NEXT" --generate-notes
+          fi
