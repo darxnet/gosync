@@ -106,3 +106,33 @@ func ExampleComparableMap_compareAndDelete() {
 	// true
 	// false
 }
+
+// Session is the value type of the examples below.
+type Session struct {
+	User string
+}
+
+// ExampleMap_loadOrCompute builds the value only when the key is missing, and
+// only once even if several goroutines ask for it at the same time.
+func ExampleMap_loadOrCompute() {
+	var sessions gosync.Map[string, *Session]
+
+	s, loaded := sessions.LoadOrCompute("sid-1", func() *Session {
+		fmt.Println("creating sid-1")
+
+		return &Session{User: "ann"}
+	})
+	fmt.Println(s.User, loaded)
+
+	s, loaded = sessions.LoadOrCompute("sid-1", func() *Session {
+		fmt.Println("never called")
+
+		return nil
+	})
+	fmt.Println(s.User, loaded)
+
+	// Output:
+	// creating sid-1
+	// ann false
+	// ann true
+}

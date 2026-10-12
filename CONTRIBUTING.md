@@ -48,4 +48,5 @@ A change that makes a benchmark slower needs a reason in the commit message.
 - `map.go`, `map_test.go` and `export_test.go` are derived from the Go standard
   library and keep their BSD header (see `LICENSE-GO` and `NOTICE`). Keep changes
   to them minimal and do not move code between derived and original files without
-  updating `NOTICE`.
+  updating `NOTICE`. Additions to the API that are not in Go's map (`LoadOrCompute`,
+  `Len`, `Empty`...) say so in their doc comment.

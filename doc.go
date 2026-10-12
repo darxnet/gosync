@@ -12,5 +12,6 @@
 // disjoint keys. For write-heavy, high-churn maps see github.com/darxnet/goshard.
 //
 // [ComparableMap] adds CompareAndSwap and CompareAndDelete by == for comparable
-// values; Map offers them with an equality function.
+// values; Map offers them with an equality function. [Map.LoadOrCompute] builds
+// a missing value once per key, whatever the number of goroutines asking.
 package gosync
