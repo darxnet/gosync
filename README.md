@@ -157,6 +157,15 @@ read-mostly maps.
 `Range` over 16K entries takes about 0.2 ms for both trie maps and 0.1 ms for a plain map; `Range`,
 `Len` and `Empty` allocate nothing.
 
+## See also
+
+The sibling modules follow the same rule — nothing allocated on the hot path,
+the zero value ready to use:
+
+- [goshard](https://github.com/darxnet/goshard) — sharded, lock-based concurrent map for high-churn data: stores allocate nothing
+- [goreset](https://github.com/darxnet/goreset) — generates `Reset()` for pooled structs: back to the zero state, memory kept
+- [gocopy](https://github.com/darxnet/gocopy) — generates `CopyFrom`/`Copy` that reuse the destination's memory instead of allocating
+
 ## License
 
 Apache License 2.0. See [LICENSE](LICENSE) for details.
