@@ -58,6 +58,9 @@ that allocates nothing on stores.
 - **`Len` and `Empty`** — `Empty` stops at the first entry; `Len` walks the map.
 - **`ComparableMap`** — `CompareAndSwap` and `CompareAndDelete` by `==`;
   `Map` offers them with an equality function, so values need not be comparable.
+- **`LoadOrCompute`** — get-or-create where the value is built only when the
+  key is missing, and only once even when goroutines race for the same key
+  (`LoadOrStore(key, newValue())` builds a value per caller and keeps one).
 - **Reads of a zero map are free** — a `Map` that was never written is not
   initialized by `Load`, `Range` or `Delete`.
 - **Zero dependencies** — only the standard library.
@@ -82,8 +85,8 @@ if s, ok := m.Load("sid-1"); ok {
     fmt.Println(s.User)
 }
 
-// Get-or-create.
-s, loaded := m.LoadOrStore("sid-2", newSession())
+// Get-or-create: the value is built only when missing, once per key.
+s, loaded := m.LoadOrCompute("sid-2", newSession)
 
 // Iterate.
 for id, s := range m.All() {

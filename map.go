@@ -127,6 +127,26 @@ func (m *Map[K, V]) Load(key K) (value V, ok bool) {
 // Otherwise, it stores and returns the given value.
 // The loaded result is true if the value was loaded, false if stored.
 func (m *Map[K, V]) LoadOrStore(key K, value V) (actual V, loaded bool) {
+	return m.loadOrCompute(key, value, nil)
+}
+
+// LoadOrCompute returns the existing value for the key if present.
+// Otherwise, it calls compute, stores its result and returns it.
+// The loaded result is true if the value was loaded, false if computed.
+//
+// compute runs at most once per key for concurrent callers: the key's
+// bucket is locked while it runs, so it must be short and must not use m.
+// LoadOrStore(key, newValue()) in contrast may build values that are then
+// thrown away.
+func (m *Map[K, V]) LoadOrCompute(key K, compute func() V) (actual V, loaded bool) {
+	var zero V
+
+	return m.loadOrCompute(key, zero, compute)
+}
+
+// loadOrCompute is LoadOrStore when compute is nil, LoadOrCompute otherwise:
+// one function, so that LoadOrStore does not pay for a closure.
+func (m *Map[K, V]) loadOrCompute(key K, value V, compute func() V) (actual V, loaded bool) {
 	m.init()
 	hash := m.hash(key)
 	var i *indirect[K, V]
@@ -188,6 +208,9 @@ func (m *Map[K, V]) LoadOrStore(key K, value V) (actual V, loaded bool) {
 			// Easy case: by loading again, it turns out exactly what we wanted is here!
 			return v, true
 		}
+	}
+	if compute != nil {
+		value = compute()
 	}
 	newEntry := newEntryNode(key, value)
 	if oldEntry == nil {
