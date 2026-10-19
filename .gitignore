@@ -2,4 +2,3 @@
 *.test
 bin/
 vendor/
-testdata/
