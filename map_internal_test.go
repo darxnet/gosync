@@ -1,6 +1,9 @@
 package gosync
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestInitSlowAlreadyInitialized(t *testing.T) {
 	t.Parallel()
@@ -118,5 +121,39 @@ func TestEntryLoadAndDeleteMissing(t *testing.T) {
 	v, chain, loaded := head.loadAndDelete(3)
 	if loaded || v != 0 || chain != head {
 		t.Fatalf("loadAndDelete(missing) = %v, %p, %v; want 0, head, false", v, chain, loaded)
+	}
+}
+
+// TestDeleteMissingKeyTakesNoLock holds the root lock and deletes keys that
+// are not in the map. Like sync.Map, a delete that finds nothing must return
+// without locking; with the lock it would block until the timeout.
+func TestDeleteMissingKeyTakesNoLock(t *testing.T) {
+	t.Parallel()
+
+	var m Map[int, int]
+	m.Store(1, 1)
+
+	root := m.root.Load()
+	root.mu.Lock()
+	defer root.mu.Unlock()
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for key := 2; key < 100; key++ {
+			m.Delete(key)
+			if _, loaded := m.LoadAndDelete(key); loaded {
+				t.Errorf("LoadAndDelete(%d) loaded a missing key", key)
+			}
+			if m.CompareAndDelete(key, 0, func(a, b int) bool { return a == b }) {
+				t.Errorf("CompareAndDelete(%d) deleted a missing key", key)
+			}
+		}
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("deleting a missing key blocked on the node lock")
 	}
 }
