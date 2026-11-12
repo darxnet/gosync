@@ -170,6 +170,8 @@ func TestNoAlloc(t *testing.T) { //nolint:paralleltest // AllocsPerRun
 		"LoadOrStoreExists": func() { m.LoadOrStore("gamma", 0) },
 		"DeleteMissing":     func() { m.Delete("omega") },
 		"CompareAndSwapNo":  func() { m.CompareAndSwap("gamma", -1, 0) },
+		"CompareAndDelNo":   func() { m.CompareAndDelete("gamma", -1) },
+		"CompareAndDelMiss": func() { m.CompareAndDelete("omega", 0) },
 		"Range":             func() { m.Range(func(string, int) bool { return true }) },
 		"Len":               func() { m.Len() },
 		"Empty":             func() { m.Empty() },

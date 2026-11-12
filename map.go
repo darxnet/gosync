@@ -355,8 +355,9 @@ func (m *Map[K, V]) Swap(key K, value V) (previous V, loaded bool) {
 }
 
 // CompareAndSwap swaps the old and new values for key if the value stored in
-// the map is equal to old according to eq. The eq function is called while the
-// node of the key is locked.
+// the map is equal to old according to eq. The eq function may be called more
+// than once: to find the entry, and again while the node of the key is locked,
+// so it must not use m. If eq panics, the node is unlocked.
 //
 // If there is no current value for key in the map, CompareAndSwap returns false.
 func (m *Map[K, V]) CompareAndSwap(key K, old, new V, eq func(current, old V) bool) (swapped bool) {
@@ -441,7 +442,8 @@ func (m *Map[K, V]) Delete(key K) {
 }
 
 // CompareAndDelete deletes the entry for key if its value is equal to old
-// according to eq. The eq function is called while the node of the key is locked.
+// according to eq. The eq function is called while the node of the key is
+// locked, so it must not use m. If eq panics, the node is unlocked.
 //
 // If there is no current value for key in the map, CompareAndDelete returns false.
 func (m *Map[K, V]) CompareAndDelete(key K, old V, eq func(current, old V) bool) (deleted bool) {
@@ -455,10 +457,18 @@ func (m *Map[K, V]) CompareAndDelete(key K, old V, eq func(current, old V) bool)
 
 	// Find a node with the key. n != nil if we found the node.
 	i, hashShift, slot, n := m.find(key, hash, nil, old)
-	if n == nil {
-		if i != nil {
+	if i == nil {
+		return false
+	}
+	// i.mu is unlocked by the deferred call unless pruneEmpty takes it over,
+	// so that a panic in eq does not leave the node locked.
+	locked := true
+	defer func() {
+		if locked {
 			i.mu.Unlock()
 		}
+	}()
+	if n == nil {
 		return false
 	}
 
@@ -466,20 +476,19 @@ func (m *Map[K, V]) CompareAndDelete(key K, old V, eq func(current, old V) bool)
 	e, deleted := n.entry().compareAndDelete(key, old, eq)
 	if !deleted {
 		// Nothing was actually deleted, which means the node is no longer there.
-		i.mu.Unlock()
 		return false
 	}
 	if e != nil {
 		// We didn't actually delete the whole entry, just one entry in the chain.
 		// Nothing else to do, since the parent is definitely not empty.
 		slot.Store(&e.node)
-		i.mu.Unlock()
 		return true
 	}
 	// Delete the entry.
 	slot.Store(nil)
 
 	// Check if the node is now empty (and isn't the root), and delete it if able.
+	locked = false
 	m.pruneEmpty(i, hash, hashShift)
 	return true
 }
